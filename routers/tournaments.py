@@ -1,27 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
-from database import SessionLocal
+from database import get_db
 from dependencies import get_current_user
 from models.tournament import Tournament
 from schemas.tournament import TournamentCreate
 
 router = APIRouter(prefix="/tournaments",tags=["Tournaments"])
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-
-    finally:
-        db.close()
 @router.get("/")
 def get_tournaments(db: Session = Depends(get_db)):
     return db.query(Tournament).all()
 @router.post("/")
 def create_tournament(tournament: TournamentCreate,db: Session = Depends(get_db),user=Depends(get_current_user)):
     if user["role"] != "admin":
-        raise HTTPException(status_code=403,detail="Admin only")
+        raise HTTPException(status_code=403,detail="only admin can create tournaments")
 
     new_tournament = Tournament(name=tournament.name,sport=tournament.sport,start_date=tournament.start_date,venue=tournament.venue,max_teams=tournament.max_teams)
     db.add(new_tournament)
@@ -31,7 +22,7 @@ def create_tournament(tournament: TournamentCreate,db: Session = Depends(get_db)
 @router.put("/{id}")
 def update_tournament(id: int,updated: TournamentCreate,db: Session = Depends(get_db),user=Depends(get_current_user)):
     if user["role"] != "admin":
-        raise HTTPException(status_code=403,detail="Admin only")
+        raise HTTPException(status_code=403,detail="only admin can update tournaments")
 
     tournament = db.query(Tournament).filter(Tournament.id == id).first()
     if not tournament:
@@ -49,7 +40,7 @@ def update_tournament(id: int,updated: TournamentCreate,db: Session = Depends(ge
 @router.delete("/{id}")
 def delete_tournament(id: int,db: Session = Depends(get_db),user=Depends(get_current_user)):
     if user["role"] != "admin":
-        raise HTTPException(status_code=403,detail="Admin only")
+        raise HTTPException(status_code=403,detail="only admin can delete tournaments")
     tournament = db.query(Tournament).filter(Tournament.id == id).first()
 
     if not tournament:
